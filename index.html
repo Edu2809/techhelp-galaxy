@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechHelp Galaxy Dashboard - Suporte Técnico Estelar</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c1a 0%, #1a0033 50%, #0a0a23 100%);
+            color: #e8f4fd;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #stars-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        header {
+            background: rgba(10, 10, 26, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 1rem 2rem;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00d4ff, #ff6b9d, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .subtitle {
+            color: #a8b2d1;
+            font-size: 1rem;
+        }
+
+        /* Filters Section */
+        .filters-section {
+            background: rgba(26, 26, 62, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        .filters-title {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            color: #a8b2d1;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .filter-select {
+            background: rgba(10, 10, 26, 0.8);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            color: #e8f4fd;
+            padding: 0.7rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-select:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-apply {
+            background: linear-gradient(45deg, #00d4ff, #4ecdc4);
+            color: #0c0c1a;
+        }
+
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-reset {
+            background: rgba(255, 107, 157, 0.2);
+            color: #ff6b9d;
+            border: 1px solid #ff6b9d;
+        }
+
+        .btn-reset:hover {
+            background: rgba(255, 107, 157, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .filter-tag {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid #00d4ff;
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-tag-close {
+            cursor: pointer;
+            font-weight: bold;
+            color: #ff6b9d;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 5;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: rgba(26, 26, 62, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 212, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+            opacity: 0;
+        }
+
+        .card:hover::before {
+            animation: shine 0.5s ease;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); opacity: 0; }
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7), 0 0 50px rgba(0, 212, 255, 0.3);
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00d4ff, #ff6b9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #a8b2d1;
+            font-size: 1.1rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .chart-container {
+            background: rgba(26, 26, 62, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #e8f4fd;
+        }
+
+        .chart-canvas {
+            max-height: 350px;
+        }
+
+        .insight {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 10px;
+            border-left: 4px solid #4caf50;
+            color: #c8e6c9;
+            font-style: italic;
+        }
+
+        .table-container {
+            background: rgba(26, 26, 62, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #a8b2d1;
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="stars-canvas"></canvas>
+
+    <header>
+        <div class="header-content">
+            <div>
+                <div class="logo">🚀 TechHelp Galaxy</div>
+                <div class="subtitle">Dashboard de Suporte Técnico Estelar</div>
+            </div>
+            <div style="font-size: 0.9rem; color: #a8b2d1;">
+                Gerado com IA - Grok xAI
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="filters-title">
+                🎯 Filtros de Dados
+            </div>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Período</label>
+                    <select id="filterPeriod" class="filter-select">
+                        <option value="all">Todos os períodos</option>
+                        <option value="last7">Últimos 7 dias</option>
+                        <option value="last30">Últimos 30 dias</option>
+                        <option value="thisMonth">Este mês</option>
+                        <option value="lastMonth">Mês passado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Status</label>
+                    <select id="filterStatus" class="filter-select">
+                        <option value="all">Todos os status</option>
+                        <option value="Aberto">Aberto</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Em Andamento">Em Andamento</option>
+                        <option value="Resolvido">Resolvido</option>
+                        <option value="Fechado">Fechado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Categoria</label>
+                    <select id="filterCategory" class="filter-select">
+                        <option value="all">Todas as categorias</option>
+                        <option value="Acesso Negado">Acesso Negado</option>
+                        <option value="Falha de Software">Falha de Software</option>
+                        <option value="Hardware Defeituoso">Hardware Defeituoso</option>
+                        <option value="Impressora Não Funciona">Impressora Não Funciona</option>
+                        <option value="Configuração de E-mail">Configuração de E-mail</option>
+                        <option value="Instalação de Software">Instalação de Software</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-apply" onclick="applyFilters()">
+                    ✨ Aplicar Filtros
+                </button>
+                <button class="btn btn-reset" onclick="resetFilters()">
+                    🔄 Limpar Filtros
+                </button>
+            </div>
+            <div id="activeFilters" class="active-filters"></div>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="metrics-grid" id="metrics-grid"></div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3 class="chart-title">Chamados por Técnico (Top 10)</h3>
+                <canvas id="barChart" class="chart-canvas"></canvas>
+                <div class="insight" id="barInsight"></div>
+            </div>
+            <div class="chart-container">
+                <h3 class="chart-title">Categorias de Chamados</h3>
+                <canvas id="pieChart" class="chart-canvas"></canvas>
+                <div class="insight" id="pieInsight"></div>
+            </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="table-container">
+            <h3 style="padding: 1.5rem 1.5rem 0; color: #e8f4fd;">Resumo por Status e Satisfação</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Satisfação Média</th>
+                        <th>% do Total</th>
+                    </tr>
+                </thead>
+                <tbody id="statusTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>Dashboard Interativo | Dados de 92 Chamados | Tema Universo © 2025 TechHelp Solutions</p>
+    </footer>
+
+    <script>
+        // Original data
+        const originalData = {
+            total: 92,
+            open: 25,
+            closed: 28,
+            inProgress: 39,
+            avgResolution: '4h 05min',
+            topTech: 'Luigi Barbosa (4 chamados)',
+            categories: [
+                { label: 'Acesso Negado', data: 25, color: '#ff6b9d' },
+                { label: 'Falha de Software', data: 20, color: '#4ecdc4' },
+                { label: 'Hardware Defeituoso', data: 12, color: '#45b7d1' },
+                { label: 'Impressora Não Funciona', data: 8, color: '#f9ca24' },
+                { label: 'Configuração de E-mail', data: 8, color: '#6c5ce7' },
+                { label: 'Instalação de Software', data: 8, color: '#00b894' },
+                { label: 'Outros', data: 11, color: '#e17055' }
+            ],
+            technicians: [
+                { label: 'Luigi Barbosa', data: 4 },
+                { label: 'Maria Clara Gonçalves', data: 3 },
+                { label: 'Ana Sophia Sousa', data: 3 },
+                { label: 'Vinícius Câmara', data: 2 },
+                { label: 'Yago Ferreira', data: 2 },
+                { label: 'Diego Teixeira', data: 2 },
+                { label: 'Stephany Pacheco', data: 2 },
+                { label: 'Arthur Borges', data: 2 },
+                { label: 'Ryan Mendonça', data: 2 },
+                { label: 'Outros', data: 70 }
+            ],
+            statusSummary: [
+                { status: 'Aberto', count: 25, satisfaction: 'N/A', percent: 27 },
+                { status: 'Pendente', count: 15, satisfaction: 'N/A', percent: 16 },
+                { status: 'Em Andamento', count: 24, satisfaction: 'Médio', percent: 26 },
+                { status: 'Resolvido', count: 14, satisfaction: 'Bom', percent: 15 },
+                { status: 'Fechado', count: 14, satisfaction: 'Bom', percent: 15 }
+            ]
+        };
+
+        let dashboardData = JSON.parse(JSON.stringify(originalData));
+        let barChart, pieChart;
+        let currentFilters = { period: 'all', status: 'all', category: 'all' };
+
+        function createStars() {
+            const canvas = document.getElementById('stars-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const stars = [];
+            for (let i = 0; i < 300; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5,
+                    alpha: Math.random()
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                stars.forEach(star => {
+                    ctx.save();
+                    ctx.globalAlpha = star.alpha * 0.8;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    star.x += (Math.random() - 0.5) * 0.5;
+                    star.y += (Math.random() - 0.5) * 0.5;
+                    if (star.x < 0 || star.x > canvas.width) star.x = Math.random() * canvas.width;
+                    if (star.y < 0 || star.y > canvas.height) star.y = Math.random() * canvas.height;
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+        function applyFilters() {
+            currentFilters = {
+                period: document.getElementById('filterPeriod').value,
+                status: document.getElementById('filterStatus').value,
+                category: document.getElementById('filterCategory').value
+            };
+
+            dashboardData = filterData(originalData, currentFilters);
+            updateDashboard();
+            updateActiveFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterPeriod').value = 'all';
+            document.getElementById('filterStatus').value = 'all';
+            document.getElementById('filterCategory').value = 'all';
+            currentFilters = { period: 'all', status: 'all', category: 'all' };
+            dashboardData = JSON.parse(JSON.stringify(originalData));
+            updateDashboard();
+            updateActiveFilters();
+        }
+
+        function filterData(data, filters) {
+            let filtered = JSON.parse(JSON.stringify(data));
+
+            // Period filter (simulated - adjusts data proportionally)
+            if (filters.period !== 'all') {
+                const reductionFactors = {
+                    'last7': 0.2,
+                    'last30': 0.6,
+                    'thisMonth': 0.7,
+                    'lastMonth': 0.5
+                };
+                const factor = reductionFactors[filters.period] || 1;
+                filtered.total = Math.round(data.total * factor);
+                filtered.open = Math.round(data.open * factor);
+                filtered.closed = Math.round(data.closed * factor);
+                filtered.inProgress = Math.round(data.inProgress * factor);
+            }
+
+            // Status filter
+            if (filters.status !== 'all') {
+                const statusMap = {
+                    'Aberto': { open: 1, closed: 0, inProgress: 0 },
+                    'Pendente': { open: 0, closed: 0, inProgress: 0.4 },
+                    'Em Andamento': { open: 0, closed: 0, inProgress: 0.6 },
+                    'Resolvido': { open: 0, closed: 0.5, inProgress: 0 },
+                    'Fechado': { open: 0, closed: 0.5, inProgress: 0 }
+                };
+                const weights = statusMap[filters.status];
+                filtered.open = Math.round(data.open * weights.open);
+                filtered.closed = Math.round(data.closed * weights.closed);
+                filtered.inProgress = Math.round(data.inProgress * weights.inProgress);
+                filtered.total = filtered.open + filtered.closed + filtered.inProgress;
+            }
+
+            // Category filter
+            if (filters.category !== 'all') {
+                filtered.categories = data.categories.filter(c => c.label === filters.category);
+                filtered.total = filtered.categories.reduce((sum, c) => sum + c.data, 0);
+            }
+
+            // Adjust technicians proportionally
+            const totalRatio = filtered.total / data.total;
+            filtered.technicians = data.technicians.map(t => ({
+                label: t.label,
+                data: Math.max(1, Math.round(t.data * totalRatio))
+            }));
+
+            // Adjust status summary
+            filtered.statusSummary = data.statusSummary.map(s => ({
+                status: s.status,
+                count: Math.round(s.count * totalRatio),
+                satisfaction: s.satisfaction,
+                percent: s.percent
+            }));
+
+            return filtered;
+        }
+
+        function updateActiveFilters() {
+            const container = document.getElementById('activeFilters');
+            container.innerHTML = '';
+            
+            const filterNames = {
+                period: document.getElementById('filterPeriod').selectedOptions[0].text,
+                status: document.getElementById('filterStatus').selectedOptions[0].text,
+                category: document.getElementById('filterCategory').selectedOptions[0].text
+            };
+
+            Object.entries(currentFilters).forEach(([key, value]) => {
+                if (value !== 'all') {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    tag.innerHTML = `${filterNames[key]} <span class="filter-tag-close" onclick="removeFilter('${key}')">✕</span>`;
+                    container.appendChild(tag);
+                }
+            });
+        }
+
+        function removeFilter(filterKey) {
+            document.getElementById('filter' + filterKey.charAt(0).toUpperCase() + filterKey.slice(1)).value = 'all';
+            applyFilters();
+        }
+
+        function createMetrics() {
+            const grid = document.getElementById('metrics-grid');
+            grid.innerHTML = '';
+            
+            const topTech = dashboardData.technicians[0];
+            const topTechLabel = topTech ? `${topTech.label} (${topTech.data} chamados)` : 'N/A';
+            
+            const cards = [
+                { value: dashboardData.total, label: 'Total de Chamados', icon: '📊' },
+                { value: dashboardData.open, label: 'Abertos', icon: '🔴' },
+                { value: dashboardData.closed, label: 'Encerrados', icon: '🟢' },
+                { value: dashboardData.inProgress, label: 'Em Progresso', icon: '🟡' },
+                { value: dashboardData.avgResolution, label: 'Tempo Médio Resolução', icon: '⏱️' },
+                { value: topTechLabel, label: 'Técnico Mais Produtivo', icon: '🏆' }
+            ];
+
+            cards.forEach(cardData => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">${cardData.icon}</div>
+                    <div class="metric-value">${cardData.value}</div>
+                    <div class="metric-label">${cardData.label}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function createCharts() {
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            if (barChart) barChart.destroy();
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: dashboardData.technicians.map(t => t.label),
+                    datasets: [{
+                        label: 'Nº de Chamados',
+                        data: dashboardData.technicians.map(t => t.data),
+                        backgroundColor: 'rgba(0, 212, 255, 0.8)',
+                        borderColor: '#00d4ff',
+                        borderWidth: 2,
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: dashboardData.categories.map(c => c.label),
+                    datasets: [{
+                        data: dashboardData.categories.map(c => c.data),
+                        backgroundColor: dashboardData.categories.map(c => c.color),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            updateInsights();
+        }
+
+        function updateInsights() {
+            const maxTech = dashboardData.technicians[0];
+            const maxCat = dashboardData.categories[0];
+            const maxCatPercent = ((maxCat.data / dashboardData.total) * 100).toFixed(1);
+            document.getElementById('barInsight').textContent = `O técnico ${maxTech.label} é o mais produtivo, responsável por ${maxTech.data} chamados.`;
+            document.getElementById('pieInsight').textContent = `${maxCat.label} é a categoria mais recorrente, representando ${maxCatPercent}% dos chamados. Priorize treinamentos nessa área.`;
+        }
+
+        function createTable() {
+            const tbody = document.getElementById('statusTable');
+            tbody.innerHTML = '';
+            dashboardData.statusSummary.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${row.status}</strong></td>
+                    <td>${row.count}</td>
+                    <td>${row.satisfaction}</td>
+                    <td>${row.percent}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateDashboard() {
+            createMetrics();
+            createCharts();
+            createTable();
+        }
+
+        // Init
+        createStars();
+        createMetrics();
+        createCharts();
+        createTable();
+    </script>
+</body>
+</html>
